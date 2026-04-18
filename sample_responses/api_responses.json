@@ -1,0 +1,252 @@
+{
+  "POST /api/v1/upload-mri": {
+    "description": "Upload an MRI image for full AI analysis pipeline",
+    "request": {
+      "method": "POST",
+      "content_type": "multipart/form-data",
+      "fields": {
+        "file": "<mri_image.jpg>",
+        "patient_age": 58,
+        "patient_gender": "M",
+        "symptoms": "headache,vision changes,nausea",
+        "medical_history": "hypertension,diabetes"
+      }
+    },
+    "response_201": {
+      "scan_id": "SCAN-A3F9B21C04",
+      "status": "analyzed",
+      "tumor_detected": true,
+      "confidence": 0.9147,
+      "risk_level": "High",
+      "risk_probability": 0.8732,
+      "urgency": "Immediate",
+      "doctor_type": "Neurosurgeon (Senior)",
+      "suggested_action": "Emergency neurosurgical assessment and ICU admission.",
+      "next_steps": [
+        "Activate emergency protocol immediately",
+        "Transfer patient to ICU",
+        "Order contrast-enhanced MRI within 2 hours",
+        "Alert on-call neurosurgeon",
+        "Initiate IV corticosteroids to reduce cerebral edema",
+        "Consent for possible surgical intervention",
+        "Notify next-of-kin"
+      ],
+      "icu_bed_assigned": true,
+      "doctor_assigned": true,
+      "ot_room_assigned": true,
+      "resource_message": "Emergency allocation complete. ICU Bed 3, DR-002 assigned, OT Room 1 reserved.",
+      "message": "Scan 'mri_image.jpg' analyzed successfully. Tumor detected. Risk: High. Action: Immediate."
+    },
+    "response_400_invalid_file": {
+      "detail": "Invalid file type 'application/pdf'. Upload JPEG or PNG MRI images."
+    }
+  },
+
+  "GET /api/v1/prediction/{scan_id}": {
+    "description": "Retrieve CNN prediction & risk classification for a scan",
+    "request": {
+      "method": "GET",
+      "url": "/api/v1/prediction/SCAN-A3F9B21C04"
+    },
+    "response_200": {
+      "scan_id": "SCAN-A3F9B21C04",
+      "filename": "mri_image.jpg",
+      "tumor_detected": true,
+      "confidence": 0.9147,
+      "raw_score": 0.9147,
+      "tumor_size": "large",
+      "risk_level": "High",
+      "risk_probability": 0.8732,
+      "risk_rationale": "Large high-confidence tumor detected. Emergency intervention likely needed.",
+      "patient_age": 58,
+      "patient_gender": "M",
+      "symptoms": ["headache", "vision changes", "nausea"],
+      "created_at": "2025-04-18T09:22:11.034Z"
+    },
+    "response_200_no_tumor": {
+      "scan_id": "SCAN-B7D4E91A01",
+      "filename": "routine_mri.png",
+      "tumor_detected": false,
+      "confidence": 0.9423,
+      "raw_score": 0.0577,
+      "tumor_size": "none",
+      "risk_level": "Low",
+      "risk_probability": 0.0577,
+      "risk_rationale": "No tumor detected by CNN. Routine follow-up recommended.",
+      "patient_age": 32,
+      "patient_gender": "F",
+      "symptoms": ["mild headache"],
+      "created_at": "2025-04-18T10:05:44.812Z"
+    },
+    "response_404": {
+      "detail": "No scan found with ID 'SCAN-INVALID'. Ensure the MRI was uploaded via POST /upload-mri."
+    }
+  },
+
+  "GET /api/v1/decision/{scan_id}": {
+    "description": "Retrieve the clinical decision engine output for a scan",
+    "examples": {
+      "high_risk_immediate": {
+        "request_url": "/api/v1/decision/SCAN-A3F9B21C04",
+        "response_200": {
+          "scan_id": "SCAN-A3F9B21C04",
+          "urgency": "Immediate",
+          "doctor_type": "Neurosurgeon (Senior)",
+          "suggested_action": "Emergency neurosurgical assessment and ICU admission.",
+          "next_steps": [
+            "Activate emergency protocol immediately",
+            "Transfer patient to ICU",
+            "Order contrast-enhanced MRI within 2 hours",
+            "Alert on-call neurosurgeon",
+            "Initiate IV corticosteroids to reduce cerebral edema",
+            "Consent for possible surgical intervention",
+            "Notify next-of-kin"
+          ],
+          "estimated_wait_hours": 0.5,
+          "alert_er": true,
+          "notes": "High-risk tumor detected (confidence 87%). Patient age 58. Immediate action required.",
+          "created_at": "2025-04-18T09:22:11.201Z"
+        }
+      },
+      "medium_risk_moderate": {
+        "request_url": "/api/v1/decision/SCAN-C9F2D31E07",
+        "response_200": {
+          "scan_id": "SCAN-C9F2D31E07",
+          "urgency": "Moderate",
+          "doctor_type": "Neurologist",
+          "suggested_action": "Specialist consult within 24h; enhanced imaging required.",
+          "next_steps": [
+            "Schedule MRI with gadolinium contrast within 24 hours",
+            "Refer to neurology outpatient (urgent slot)",
+            "Perform full neurological examination",
+            "Order blood panel: CBC, CMP, coagulation",
+            "Restrict strenuous activity",
+            "Prescribe anti-edema medication if indicated",
+            "Patient education: warning signs to watch for"
+          ],
+          "estimated_wait_hours": 24.0,
+          "alert_er": false,
+          "notes": "Medium-risk finding. Seizure history: false. Urgency adjusted accordingly.",
+          "created_at": "2025-04-18T10:11:30.419Z"
+        }
+      },
+      "low_risk_routine": {
+        "request_url": "/api/v1/decision/SCAN-B7D4E91A01",
+        "response_200": {
+          "scan_id": "SCAN-B7D4E91A01",
+          "urgency": "Low",
+          "doctor_type": "General Neurologist",
+          "suggested_action": "Routine follow-up; no immediate intervention required.",
+          "next_steps": [
+            "Schedule routine MRI follow-up in 30 days",
+            "General neurology outpatient appointment",
+            "Lifestyle advice: sleep hygiene, stress management",
+            "Patient to return immediately if headaches worsen",
+            "Re-evaluate if new symptoms emerge"
+          ],
+          "estimated_wait_hours": 72.0,
+          "alert_er": false,
+          "notes": "Low-risk or no tumor detected. Standard adult pathway.",
+          "created_at": "2025-04-18T10:05:44.990Z"
+        }
+      }
+    }
+  },
+
+  "GET /api/v1/resources": {
+    "description": "Real-time hospital resource dashboard",
+    "request": {
+      "method": "GET",
+      "url": "/api/v1/resources"
+    },
+    "response_200_normal": {
+      "icu_beds": {
+        "total": 10,
+        "occupied": 4,
+        "available": 6,
+        "occupancy_rate": "40%"
+      },
+      "doctors": {
+        "total": 5,
+        "on_duty": 2,
+        "available": 3
+      },
+      "ot_rooms": {
+        "total": 3,
+        "in_use": 1,
+        "available": 2
+      },
+      "waiting_queue": {
+        "patients_waiting": 0,
+        "queue": []
+      },
+      "system_alert": null
+    },
+    "response_200_critical": {
+      "icu_beds": {
+        "total": 10,
+        "occupied": 9,
+        "available": 1,
+        "occupancy_rate": "90%"
+      },
+      "doctors": {
+        "total": 5,
+        "on_duty": 5,
+        "available": 0
+      },
+      "ot_rooms": {
+        "total": 3,
+        "in_use": 3,
+        "available": 0
+      },
+      "waiting_queue": {
+        "patients_waiting": 2,
+        "queue": [
+          {"scan_id": "SCAN-D1A8C72F03", "risk": "High", "queued_at": "2025-04-18T11:02:14.003Z"},
+          {"scan_id": "SCAN-E5B3F90A08", "risk": "Medium", "queued_at": "2025-04-18T11:14:30.721Z"}
+        ]
+      },
+      "system_alert": "🚨 CRITICAL: ICU occupancy ≥90%. Activate surge capacity protocol."
+    }
+  },
+
+  "GET /api/v1/resources/allocation/{scan_id}": {
+    "description": "Allocation detail for a specific scan",
+    "response_200": {
+      "scan_id": "SCAN-A3F9B21C04",
+      "risk_level": "High",
+      "icu_bed_assigned": true,
+      "doctor_assigned": true,
+      "ot_room_assigned": true,
+      "doctor_id": "DR-002",
+      "bed_number": 3,
+      "ot_room_number": 1,
+      "allocation_time": "2025-04-18T09:22:11.350Z",
+      "queue_position": null,
+      "message": "Emergency allocation complete. ICU Bed 3, DR-002 assigned, OT Room 1 reserved."
+    }
+  },
+
+  "DELETE /api/v1/resources/release/{scan_id}": {
+    "description": "Release resources when patient is discharged",
+    "response_200": {
+      "message": "Resources for scan 'SCAN-A3F9B21C04' successfully released.",
+      "scan_id": "SCAN-A3F9B21C04"
+    }
+  },
+
+  "GET /": {
+    "description": "System health check",
+    "response_200": {
+      "system": "Intelligent Healthcare Ecosystem (Neurology)",
+      "status": "operational",
+      "version": "1.0.0",
+      "endpoints": [
+        "POST /api/v1/upload-mri",
+        "GET  /api/v1/prediction/{scan_id}",
+        "GET  /api/v1/decision/{scan_id}",
+        "GET  /api/v1/resources"
+      ]
+    }
+  }
+}

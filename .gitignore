@@ -1,0 +1,12 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.h5
+*.pt
+node_modules/
+build/
+.DS_Store
+*.dylib
+*.so

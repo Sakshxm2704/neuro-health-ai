@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+  # ── MongoDB ─────────────────────────────────────────────
+  mongo:
+    image: mongo:7.0
+    container_name: neuro_mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: neuro_health_db
+
+  # ── FastAPI Application ──────────────────────────────────
+  api:
+    build: .
+    container_name: neuro_api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      MONGO_URI: mongodb://mongo:27017
+      MONGO_DB: neuro_health_db
+      MODEL_PATH: ai/model/brain_tumor_cnn.h5
+      IMAGE_SIZE: 128
+      TOTAL_ICU_BEDS: 10
+      TOTAL_DOCTORS: 5
+      TOTAL_OT_ROOMS: 3
+    depends_on:
+      - mongo
+    volumes:
+      - ./ai/model:/app/ai/model  # Mount trained model directory
+
+volumes:
+  mongo_data:
